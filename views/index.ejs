@@ -1,6 +1,6 @@
 <%- include('partials/header.ejs'); -%>
 
-  <div class="box" id="heading">
+  <div class="headingbox" id="heading">
     <h1>
       <%= listTitle %>
     </h1>
@@ -35,9 +35,16 @@
           <input type="text" name="newItem" placeholder="New Item" autocomplete="off" autofocus="true" />
           <button class="add" type="submit" name="list" value=<%=listTitle %> >+</button>
         </form>
+
+
   </div>
 
+
   <script>
+  // Create WebSocket connection.
+  const ws = new WebSocket("ws://localhost:8080");
+ 
+
     /*#handler change start*/
     function handler(id) {
       document.getElementById("title" + id).setAttribute("hidden", true)
@@ -54,6 +61,73 @@
     console.log(event);
   }
   checkboxes.forEach(checkbox=>checkbox.addEventListener('click',handleCheck));
+
+  // WebSocket message event listener
+  ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      switch (message.action) {
+        case 'add':
+          // Handle adding a new item
+          addItemToUI(message.newItem);
+          break;
+        case 'edit':
+          // Handle editing an item
+          updateItemInUI(message.updatedItem);
+          break;
+        case 'delete':
+          // Handle deleting an item
+          removeItemFromUI(message.deletedItemId);
+          break;
+        default:
+          break;
+      }
+    };
+
+    // Function to add item to UI
+    function addItemToUI(newItem) {
+      // Append new item to list
+      const itemDiv = document.createElement("div");
+      itemDiv.className = "item";
+      itemDiv.innerHTML = `
+      
+        <input type="checkbox">
+        <p id="title${newItem.id}">${newItem.title}</p>
+        <form class="edit" action="/edit" method="post">
+          <input type="hidden" name="updatedItemId" value="${newItem.id}">
+          <input id="input${newItem.id}" type="text" name="updatedItemTitle" value="${newItem.title}" autocomplete="off" autofocus="true" hidden="true" />
+          <button id="done${newItem.id}" class="edit" type="submit" hidden><img class="icon" src="/assets/icons/check-solid.svg" alt="tick image"></button>
+        </form>
+        <button id="edit${newItem.id}" class="edit" onclick="editHandler('${newItem.id}')"><img class="icon" src="/assets/icons/pencil-solid.svg" alt="pencil image"></button>
+        <form action="/delete" method="post">
+          <button id="cross${newItem.id}" hidden="true" class="delete" onclick="deleteHandler('${newItem.id}')"><img class="deleteicon" src="/assets/icons/cross.svg" alt="cross image"></button>
+        </form>
+  
+      `;
+        // Get the .box div
+    const boxDiv = document.querySelector(".box");
+
+        // Get the last child of the .box div
+    const lastChild = boxDiv.lastElementChild;
+
+      // Append the new item before the last child
+    boxDiv.insertBefore(itemDiv, lastChild);
+    }
+    
+  
+    // Function to update item in UI
+    function updateItemInUI(updatedItem) {
+      // Update item title
+      document.getElementById(`title${updatedItem.id}`).innerText = updatedItem.title;
+    }
+
+    // Function to remove item from UI
+    function removeItemFromUI(itemId) {
+      // Remove item from list
+      document.getElementById(`title${itemId}`).closest(".item").remove();
+    }
+
+  </script>
+
   </script>
 
 
